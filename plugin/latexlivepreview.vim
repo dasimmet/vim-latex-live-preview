@@ -55,15 +55,26 @@ endfunction
 
 function! s:Compile()
 
+    set noswapfile
     if !exists('b:livepreview_buf_data') ||
                 \ has_key(b:livepreview_buf_data, 'preview_running') == 0 ||
                 \ b:livepreview_buf_data['preview_running'] == 0
         return
     endif
+    
+    let tmpName1=b:livepreview_buf_data['tmp_src_file']
+    let tmpName2=tmpName1.'.temp2'
+    silent exec 'write! '.tmpName2
+    
+    let isNotChanged=system('cmp --silent '.tmpName2.' '.tmpName1.
+                         \' ||echo 1;echo 0')
+    if !isNotChanged
+        return
+    endif
 
     lcd %:p:h
 
-    silent exec 'write! ' . b:livepreview_buf_data['tmp_src_file']
+    silent exec 'write! ' . tmpName1
 
     call s:RunInBackground(
                 \ 'pdflatex -interaction=nonstopmode -output-directory=' .
@@ -77,6 +88,7 @@ function! s:Compile()
     endif
 
     lcd -
+    set swapfile
 endfunction
 
 function! s:StartPreview()
